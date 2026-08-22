@@ -1,5 +1,8 @@
 // OpenWeather API configuration
-const API_KEY = '8a3b585171838f95a9c10460e3ea51e4';
+// Supports Vite environment variables (.env -> VITE_OPENWEATHER_API_KEY)
+const API_KEY = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_OPENWEATHER_API_KEY)
+    ? import.meta.env.VITE_OPENWEATHER_API_KEY
+    : '8a3b585171838f95a9c10460e3ea51e4';
 const DEFAULT_CITY = 'London';
 
 // DOM Elements
