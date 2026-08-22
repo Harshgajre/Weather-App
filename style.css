@@ -304,7 +304,7 @@ body {
     display: none !important;
 }
 
-/* Header: Location & Update Badge */
+/* Header: Location & Actions */
 .card-header {
     display: flex;
     justify-content: space-between;
@@ -319,6 +319,7 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
 .location-pin {
@@ -340,11 +341,16 @@ body {
     color: var(--accent-blue);
     border: 1px solid rgba(56, 189, 248, 0.3);
     font-size: 12px;
-    font-weight: 700;
-    padding: 2px 8px;
+    font-weight: 600;
+    padding: 3px 10px;
     border-radius: var(--radius-sm);
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .update-badge {
@@ -353,7 +359,7 @@ body {
     gap: 5px;
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    padding: 4px 10px;
+    padding: 5px 12px;
     border-radius: var(--radius-pill);
     font-size: 12px;
     color: var(--text-muted);
@@ -364,6 +370,70 @@ body {
 .update-icon {
     font-size: 15px;
     color: var(--text-muted);
+}
+
+.refresh-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-main);
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+
+.refresh-btn:hover {
+    background: rgba(56, 189, 248, 0.2);
+    border-color: rgba(56, 189, 248, 0.4);
+    color: var(--accent-blue);
+    transform: scale(1.05);
+}
+
+.refresh-btn:active {
+    transform: scale(0.95);
+}
+
+.refresh-icon {
+    font-size: 18px;
+    transition: transform 0.3s ease;
+}
+
+.refresh-btn.spinning .refresh-icon {
+    animation: spinRefresh 0.8s linear infinite;
+}
+
+@keyframes spinRefresh {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Toast Message */
+.weather-toast {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    border-radius: var(--radius-sm);
+    color: #fca5a5;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: -10px;
+    animation: fadeIn 0.3s ease;
+}
+
+.weather-toast.hidden {
+    display: none !important;
+}
+
+.toast-icon {
+    font-size: 18px;
+    color: var(--accent-red);
 }
 
 /* ==========================================================================

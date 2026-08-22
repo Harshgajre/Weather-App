@@ -22,7 +22,7 @@ A sleek, responsive, and real-time weather application built with HTML, CSS, Jav
 
 - **Frontend**: HTML5, Vanilla CSS3 (Custom Glassmorphism Design System), JavaScript (ES6+)
 - **Build Tool**: [Vite](https://vitejs.dev/)
-- **API Provider**: [OpenWeatherMap API](https://openweathermap.org/) (Current Weather Data endpoint)
+- **API Provider**: [Open-Meteo API](https://open-meteo.com/) (Forecast & Geocoding APIs - Keyless, High Precision)
 
 ---
 
@@ -49,23 +49,12 @@ npm install
 
 ---
 
-## 🔑 Weather API & Environment Variables
+## 🔑 Weather API & Configuration
 
-This application uses the OpenWeatherMap Current Weather API.
-
-### Option A: Using `.env` (Recommended for Security)
-
-1. Create a `.env` file in the root directory (copied from [`.env.example`](.env.example)):
-   ```bash
-   cp .env.example .env
-   ```
-2. Open `.env` and paste your OpenWeather API key:
-   ```env
-   VITE_OPENWEATHER_API_KEY=your_actual_api_key_here
-   ```
-3. Get a free API key at [OpenWeatherMap](https://home.openweathermap.org/api_keys).
-
-> ⚠️ **Security Tip**: Never commit `.env` or your personal API keys to public repositories. The `.env` file is already listed in `.gitignore`.
+This application is powered by the **Open-Meteo Weather & Geocoding APIs**.
+- **No API key required**: The app works out of the box without registration or key management.
+- **Default Location**: Automatically loads **Ahmedabad, Gujarat, India** on initial load.
+- **Auto-Refresh**: Live data is refreshed automatically every 60 seconds, with manual refresh controls.
 
 ---
 

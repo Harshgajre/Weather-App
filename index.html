@@ -50,16 +50,27 @@
 
         <!-- Current Weather Card -->
         <section id="weather-card" class="weather-card" aria-label="Current Weather Information">
-            <!-- Card Header: Location & Last Updated -->
+            <!-- Toast notification for background errors -->
+            <div id="weather-toast" class="weather-toast hidden" role="status">
+                <span class="material-symbols-outlined toast-icon">warning</span>
+                <span id="toast-text" class="toast-text">Unable to fetch the latest weather data.</span>
+            </div>
+
+            <!-- Card Header: Location, Last Updated & Manual Refresh -->
             <div class="card-header">
                 <div class="location-wrapper">
                     <span class="material-symbols-outlined location-pin">location_on</span>
-                    <h1 id="city-name" class="city-name">London</h1>
-                    <span id="country-code" class="country-badge">GB</span>
+                    <h1 id="city-name" class="city-name">Ahmedabad</h1>
+                    <span id="country-code" class="country-badge">Gujarat, India</span>
                 </div>
-                <div class="update-badge" title="Last updated time">
-                    <span class="material-symbols-outlined update-icon">schedule</span>
-                    <span id="last-updated">Last updated: --:--</span>
+                <div class="header-actions">
+                    <div class="update-badge" title="Last updated time">
+                        <span class="material-symbols-outlined update-icon">schedule</span>
+                        <span id="last-updated">Last updated: --:--:--</span>
+                    </div>
+                    <button id="refresh-btn" class="refresh-btn" type="button" aria-label="Refresh weather data" title="Refresh weather data">
+                        <span class="material-symbols-outlined refresh-icon">refresh</span>
+                    </button>
                 </div>
             </div>
 
