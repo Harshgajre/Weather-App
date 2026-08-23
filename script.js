@@ -1,11 +1,12 @@
 /**
- * Weather App - Open-Meteo Integration
+ * Weather App - Open-Meteo Integration with 7-Day Real Forecast
  * Features:
  * - Default location: Ahmedabad, Gujarat, India (lat: 23.0225, lon: 72.5714)
  * - Open-Meteo Forecast & Geocoding APIs (No API key required)
+ * - Unified single request for current weather + 7-day daily forecast
  * - 60-second automatic refresh with manual refresh control
- * - Location-aware timezone formatting (HH:MM:SS)
- * - Full WMO weather code translation
+ * - Location-aware timezone formatting for time & forecast days
+ * - Full WMO weather code translation with visual icons
  * - Resilient error handling retaining prior valid data
  */
 
@@ -30,11 +31,12 @@ let isFetching = false;
 let hasLoadedData = false;
 let toastTimeoutId = null;
 
-// DOM Elements
+// DOM Elements - Search & Control
 const searchBtn = document.getElementById('search-btn');
 const cityInput = document.getElementById('city-input');
 const refreshBtn = document.getElementById('refresh-btn');
 
+// DOM Elements - States & Containers
 const loadingState = document.getElementById('loading-state');
 const errorState = document.getElementById('error-state');
 const errorMessage = document.getElementById('error-message');
@@ -42,7 +44,7 @@ const weatherCard = document.getElementById('weather-card');
 const weatherToast = document.getElementById('weather-toast');
 const toastText = document.getElementById('toast-text');
 
-// Data Display Elements
+// DOM Elements - Current Weather Display
 const cityNameEl = document.getElementById('city-name');
 const countryCodeEl = document.getElementById('country-code');
 const lastUpdatedEl = document.getElementById('last-updated');
@@ -59,6 +61,13 @@ const humidityValEl = document.getElementById('humidity-val');
 const windValEl = document.getElementById('wind-val');
 const pressureValEl = document.getElementById('pressure-val');
 const visibilityValEl = document.getElementById('visibility-val');
+
+// DOM Elements - 7-Day Forecast Section
+const forecastSection = document.getElementById('forecast-section');
+const forecastCityNameEl = document.getElementById('forecast-city-name');
+const forecastGrid = document.getElementById('forecast-grid');
+const forecastError = document.getElementById('forecast-error');
+const forecastRetryBtn = document.getElementById('forecast-retry-btn');
 
 /**
  * WMO Weather Interpretation Code Table
@@ -135,6 +144,49 @@ function getFormattedTime(timeZone) {
 }
 
 /**
+ * Format day label in location's timezone:
+ * - 1st day (index 0) => "Today"
+ * - 2nd day (index 1) => "Tomorrow"
+ * - Remaining days => Short weekday name (e.g. "Mon", "Tue", "Wed")
+ */
+function formatForecastDay(dateString, index, timeZone) {
+    if (index === 0) {
+        return { label: 'Today', isToday: true };
+    }
+    if (index === 1) {
+        return { label: 'Tomorrow', isToday: false };
+    }
+
+    try {
+        // Appending T12:00:00Z ensures the date doesn't shift unexpectedly across timezones
+        const dateObj = new Date(`${dateString}T12:00:00Z`);
+        const weekday = new Intl.DateTimeFormat('en-US', {
+            timeZone: timeZone || 'UTC',
+            weekday: 'short'
+        }).format(dateObj);
+        return { label: weekday, isToday: false };
+    } catch {
+        return { label: `Day ${index + 1}`, isToday: false };
+    }
+}
+
+/**
+ * Format short date (e.g., "24 Aug") in location's timezone
+ */
+function formatForecastDate(dateString, timeZone) {
+    try {
+        const dateObj = new Date(`${dateString}T12:00:00Z`);
+        return new Intl.DateTimeFormat('en-US', {
+            timeZone: timeZone || 'UTC',
+            day: 'numeric',
+            month: 'short'
+        }).format(dateObj);
+    } catch {
+        return dateString.slice(5);
+    }
+}
+
+/**
  * Display non-intrusive toast notification for errors during background refreshes
  */
 function showToast(message, duration = 4000) {
@@ -157,17 +209,19 @@ function hideToast() {
 }
 
 /**
- * Set UI State: 'loading' | 'error' | 'content'
+ * Set Main UI State: 'loading' | 'error' | 'content'
  */
 function setUIState(state, message = '') {
     if (state === 'loading') {
         loadingState.classList.remove('hidden');
         errorState.classList.add('hidden');
         weatherCard.classList.add('hidden');
+        if (forecastSection) forecastSection.classList.add('hidden');
     } else if (state === 'error') {
         loadingState.classList.add('hidden');
         errorState.classList.remove('hidden');
         weatherCard.classList.add('hidden');
+        if (forecastSection) forecastSection.classList.add('hidden');
         if (message && errorMessage) {
             errorMessage.textContent = message;
         }
@@ -175,11 +229,45 @@ function setUIState(state, message = '') {
         loadingState.classList.add('hidden');
         errorState.classList.add('hidden');
         weatherCard.classList.remove('hidden');
+        if (forecastSection) forecastSection.classList.remove('hidden');
     }
 }
 
 /**
+ * Render 7 Skeleton Placeholder Cards while Forecast is loading
+ */
+function renderForecastSkeleton() {
+    if (!forecastGrid) return;
+    let skeletonHtml = '';
+    for (let i = 0; i < 7; i++) {
+        skeletonHtml += `
+            <div class="forecast-skeleton" aria-hidden="true">
+                <div class="skeleton-shimmer"></div>
+                <div class="skeleton-line day"></div>
+                <div class="skeleton-line date"></div>
+                <div class="skeleton-circle"></div>
+                <div class="skeleton-line cond"></div>
+                <div class="skeleton-line temp"></div>
+                <div class="skeleton-line stat"></div>
+                <div class="skeleton-line stat"></div>
+            </div>
+        `;
+    }
+    forecastGrid.innerHTML = skeletonHtml;
+    if (forecastError) forecastError.classList.add('hidden');
+}
+
+/**
+ * Show Forecast Error banner while preserving current weather display
+ */
+function showForecastError() {
+    if (forecastError) forecastError.classList.remove('hidden');
+    if (forecastGrid) forecastGrid.innerHTML = '';
+}
+
+/**
  * Fetch real weather data from Open-Meteo for a given location object
+ * Unified request fetching current weather + 7-day daily forecast
  * @param {Object} location - Location metadata with coordinates and timezone
  * @param {boolean} isBackground - If true, performs non-destructive background update
  */
@@ -194,12 +282,16 @@ async function fetchWeatherData(location = currentLocation, isBackground = false
     // Only switch to full-screen loading state if we have no prior data or during a new search
     if (!isBackground && !hasLoadedData) {
         setUIState('loading');
+    } else if (!isBackground) {
+        renderForecastSkeleton();
     }
 
     try {
         const { latitude, longitude, timezone } = location;
         const tzParam = timezone ? encodeURIComponent(timezone) : 'auto';
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,pressure_msl,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility&daily=temperature_2m_max,temperature_2m_min&timezone=${tzParam}`;
+
+        // Unified Open-Meteo Forecast endpoint requesting current weather + daily 7-day metrics
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,pressure_msl,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,wind_speed_10m_max&timezone=${tzParam}`;
 
         const response = await fetch(url);
         if (!response.ok) {
@@ -217,7 +309,16 @@ async function fetchWeatherData(location = currentLocation, isBackground = false
             timezone: data.timezone || location.timezone || 'UTC'
         };
 
+        // Render current weather
         renderWeather(data, currentLocation);
+
+        // Render 7-day forecast
+        if (data.daily && Array.isArray(data.daily.time) && data.daily.time.length > 0) {
+            renderForecast(data.daily, currentLocation);
+        } else {
+            showForecastError();
+        }
+
         hasLoadedData = true;
         hideToast();
         setUIState('content');
@@ -238,13 +339,13 @@ async function fetchWeatherData(location = currentLocation, isBackground = false
 }
 
 /**
- * Render real weather data into the UI
+ * Render real current weather data into the UI
  */
 function renderWeather(data, location) {
     const current = data.current;
     const daily = data.daily;
 
-    // 1. Location Header (Ahmedabad, Gujarat, India)
+    // 1. Location Header
     cityNameEl.textContent = location.name || 'Ahmedabad';
 
     // Format subtitle/badge: "State, Country" or "Country"
@@ -321,6 +422,117 @@ function renderWeather(data, location) {
     } else {
         visibilityValEl.textContent = 'N/A';
     }
+}
+
+/**
+ * Render 7-Day Forecast Cards from real Open-Meteo daily arrays
+ * @param {Object} daily - Open-Meteo daily forecast dataset
+ * @param {Object} location - Active location metadata
+ */
+function renderForecast(daily, location) {
+    if (!forecastGrid) return;
+
+    if (forecastCityNameEl) {
+        forecastCityNameEl.textContent = location.name || 'Ahmedabad';
+    }
+
+    if (forecastError) {
+        forecastError.classList.add('hidden');
+    }
+
+    const times = daily.time || [];
+    const totalDays = Math.min(times.length, 7);
+
+    if (totalDays === 0) {
+        showForecastError();
+        return;
+    }
+
+    const cardElements = [];
+
+    for (let i = 0; i < totalDays; i++) {
+        const dateStr = times[i];
+        const dayInfo = formatForecastDay(dateStr, i, location.timezone);
+        const formattedDate = formatForecastDate(dateStr, location.timezone);
+
+        const weatherCode = daily.weather_code ? daily.weather_code[i] : 0;
+        const conditionInfo = resolveWeatherCondition(weatherCode, 1); // Daytime iconography for daily overview
+
+        const maxTemp = (daily.temperature_2m_max && daily.temperature_2m_max[i] !== undefined)
+            ? Math.round(daily.temperature_2m_max[i])
+            : '--';
+        const minTemp = (daily.temperature_2m_min && daily.temperature_2m_min[i] !== undefined)
+            ? Math.round(daily.temperature_2m_min[i])
+            : '--';
+
+        const rainProb = (daily.precipitation_probability_max && daily.precipitation_probability_max[i] !== undefined && daily.precipitation_probability_max[i] !== null)
+            ? `${daily.precipitation_probability_max[i]}%`
+            : '0%';
+
+        const precipSum = (daily.precipitation_sum && daily.precipitation_sum[i] !== undefined && daily.precipitation_sum[i] !== null)
+            ? daily.precipitation_sum[i]
+            : 0;
+
+        const windSpeed = (daily.wind_speed_10m_max && daily.wind_speed_10m_max[i] !== undefined && daily.wind_speed_10m_max[i] !== null)
+            ? `${Math.round(daily.wind_speed_10m_max[i])} km/h`
+            : 'N/A';
+
+        // Additional precipitation sum badge if rainfall is present
+        const precipLabel = precipSum > 0 ? ` (${precipSum.toFixed(1)}mm)` : '';
+
+        const card = document.createElement('div');
+        card.className = `forecast-card${dayInfo.isToday ? ' is-today' : ''}`;
+        card.setAttribute('tabindex', '0');
+        card.setAttribute('aria-label', `${dayInfo.label}, ${formattedDate}: ${conditionInfo.label}, High ${maxTemp}°C, Low ${minTemp}°C`);
+
+        card.innerHTML = `
+            <div class="forecast-day-wrap">
+                <span class="forecast-day">${dayInfo.label}</span>
+                <span class="forecast-date">${formattedDate}</span>
+            </div>
+
+            <div class="forecast-icon-box">
+                <div class="forecast-icon-glow"></div>
+                <img 
+                    class="forecast-icon" 
+                    src="${conditionInfo.remoteIconUrl}" 
+                    alt="${conditionInfo.label}" 
+                    loading="lazy"
+                />
+            </div>
+
+            <p class="forecast-condition" title="${conditionInfo.label}">${conditionInfo.label}</p>
+
+            <div class="forecast-temps">
+                <span class="forecast-temp-max">${maxTemp}°</span>
+                <span class="forecast-temp-min">${minTemp}°</span>
+            </div>
+
+            <div class="forecast-metrics">
+                <div class="forecast-metric-item" title="Precipitation Probability & Amount">
+                    <span class="material-symbols-outlined forecast-metric-icon rain">water_drop</span>
+                    <span class="forecast-metric-val">${rainProb}${precipLabel}</span>
+                </div>
+                <div class="forecast-metric-item" title="Max Wind Speed">
+                    <span class="material-symbols-outlined forecast-metric-icon wind">air</span>
+                    <span class="forecast-metric-val">${windSpeed}</span>
+                </div>
+            </div>
+        `;
+
+        // Handle image loading error with fallback asset
+        const imgEl = card.querySelector('.forecast-icon');
+        if (imgEl) {
+            imgEl.onerror = () => {
+                imgEl.src = conditionInfo.fallbackIconUrl;
+            };
+        }
+
+        cardElements.push(card);
+    }
+
+    forecastGrid.innerHTML = '';
+    cardElements.forEach(card => forecastGrid.appendChild(card));
 }
 
 /**
@@ -415,6 +627,11 @@ function setupEventListeners() {
         startAutoRefresh();
     });
 
+    // Forecast Error Retry Button Click
+    forecastRetryBtn?.addEventListener('click', () => {
+        fetchWeatherData(currentLocation, false);
+    });
+
     // Clean up timer on window unload
     window.addEventListener('beforeunload', () => {
         if (refreshTimerId) {
@@ -431,7 +648,7 @@ function setupEventListeners() {
 // Initial application bootstrap
 window.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
-    // 1. Immediately fetch weather for default location (Ahmedabad)
+    // 1. Immediately fetch weather and 7-day forecast for default location (Ahmedabad)
     fetchWeatherData(DEFAULT_LOCATION, false);
     // 2. Start the 60-second automatic refresh timer
     startAutoRefresh();

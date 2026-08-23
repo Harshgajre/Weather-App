@@ -158,6 +158,31 @@
                 </div>
             </div>
         </section>
+
+        <!-- 7-Day Forecast Section -->
+        <section id="forecast-section" class="forecast-section" aria-label="7-Day Weather Forecast">
+            <div class="forecast-header">
+                <div class="forecast-title-wrap">
+                    <span class="material-symbols-outlined forecast-header-icon">calendar_month</span>
+                    <h2 class="forecast-title">7-Day Forecast</h2>
+                </div>
+                <span class="forecast-subtitle">Daily projections for <span id="forecast-city-name">Ahmedabad</span></span>
+            </div>
+
+            <!-- Forecast Error State (keeps current weather visible) -->
+            <div id="forecast-error" class="forecast-error hidden" role="alert">
+                <span class="material-symbols-outlined forecast-error-icon">cloud_off</span>
+                <div class="forecast-error-content">
+                    <p class="forecast-error-text">Unable to load forecast.</p>
+                    <button id="forecast-retry-btn" class="forecast-retry-btn" type="button">Retry</button>
+                </div>
+            </div>
+
+            <!-- Forecast Cards Grid / Carousel -->
+            <div id="forecast-grid" class="forecast-grid" role="region" aria-label="Daily forecast cards">
+                <!-- Forecast cards or skeletons populated by script.js -->
+            </div>
+        </section>
     </main>
 
     <script type="module" src="script.js"></script>
