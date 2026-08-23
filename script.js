@@ -30,11 +30,14 @@ let refreshTimerId = null;
 let isFetching = false;
 let hasLoadedData = false;
 let toastTimeoutId = null;
+let isForecastVisible = false;
 
 // DOM Elements - Search & Control
 const searchBtn = document.getElementById('search-btn');
 const cityInput = document.getElementById('city-input');
 const refreshBtn = document.getElementById('refresh-btn');
+const toggleForecastBtn = document.getElementById('toggle-forecast-btn');
+const toggleForecastText = document.getElementById('toggle-forecast-text');
 
 // DOM Elements - States & Containers
 const loadingState = document.getElementById('loading-state');
@@ -229,7 +232,37 @@ function setUIState(state, message = '') {
         loadingState.classList.add('hidden');
         errorState.classList.add('hidden');
         weatherCard.classList.remove('hidden');
-        if (forecastSection) forecastSection.classList.remove('hidden');
+        if (forecastSection) {
+            if (isForecastVisible) {
+                forecastSection.classList.remove('hidden');
+            } else {
+                forecastSection.classList.add('hidden');
+            }
+        }
+    }
+}
+
+/**
+ * Toggle 7-Day Forecast visibility
+ */
+function toggleForecast() {
+    isForecastVisible = !isForecastVisible;
+    if (forecastSection) {
+        if (isForecastVisible) {
+            forecastSection.classList.remove('hidden');
+            if (toggleForecastText) toggleForecastText.textContent = 'Hide 7 Days Weather';
+            if (toggleForecastBtn) {
+                toggleForecastBtn.classList.add('active');
+                toggleForecastBtn.setAttribute('aria-expanded', 'true');
+            }
+        } else {
+            forecastSection.classList.add('hidden');
+            if (toggleForecastText) toggleForecastText.textContent = 'Check 7 Days Weather';
+            if (toggleForecastBtn) {
+                toggleForecastBtn.classList.remove('active');
+                toggleForecastBtn.setAttribute('aria-expanded', 'false');
+            }
+        }
     }
 }
 
@@ -631,6 +664,9 @@ function setupEventListeners() {
     forecastRetryBtn?.addEventListener('click', () => {
         fetchWeatherData(currentLocation, false);
     });
+
+    // Toggle 7-Day Forecast Button Click
+    toggleForecastBtn?.addEventListener('click', toggleForecast);
 
     // Clean up timer on window unload
     window.addEventListener('beforeunload', () => {

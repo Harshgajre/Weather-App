@@ -111,6 +111,15 @@
                 </div>
             </div>
 
+            <!-- Toggle 7-Day Forecast Button -->
+            <div class="forecast-toggle-wrapper">
+                <button id="toggle-forecast-btn" class="toggle-forecast-btn" type="button" aria-expanded="false" aria-controls="forecast-section">
+                    <span class="material-symbols-outlined btn-icon">calendar_month</span>
+                    <span id="toggle-forecast-text">Check 7 Days Weather</span>
+                    <span class="material-symbols-outlined btn-arrow">expand_more</span>
+                </button>
+            </div>
+
             <!-- Weather Details Grid -->
             <div class="weather-details-grid">
                 <!-- Humidity -->
@@ -159,8 +168,8 @@
             </div>
         </section>
 
-        <!-- 7-Day Forecast Section -->
-        <section id="forecast-section" class="forecast-section" aria-label="7-Day Weather Forecast">
+        <!-- 7-Day Forecast Section (Hidden by default) -->
+        <section id="forecast-section" class="forecast-section hidden" aria-label="7-Day Weather Forecast">
             <div class="forecast-header">
                 <div class="forecast-title-wrap">
                     <span class="material-symbols-outlined forecast-header-icon">calendar_month</span>
