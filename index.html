@@ -168,6 +168,28 @@
             </div>
         </section>
 
+        <!-- Hourly Forecast Section -->
+        <section id="hourly-section" class="hourly-section" aria-label="Hourly Weather Forecast">
+            <div class="hourly-header">
+                <div class="hourly-title-wrap">
+                    <span class="material-symbols-outlined hourly-header-icon">schedule</span>
+                    <h2 class="hourly-title">Hourly Forecast</h2>
+                </div>
+                <span class="hourly-subtitle">Next 24 hours</span>
+            </div>
+
+            <!-- Hourly Error State -->
+            <div id="hourly-error" class="hourly-error hidden" role="alert">
+                <span class="material-symbols-outlined hourly-error-icon">cloud_off</span>
+                <p class="hourly-error-text">Unable to load hourly forecast.</p>
+            </div>
+
+            <!-- Hourly Scrollable Carousel -->
+            <div id="hourly-grid" class="hourly-grid" role="region" aria-label="Hourly forecast list">
+                <!-- Hourly cards or skeletons dynamically populated by script.js -->
+            </div>
+        </section>
+
         <!-- 7-Day Forecast Section (Hidden by default) -->
         <section id="forecast-section" class="forecast-section hidden" aria-label="7-Day Weather Forecast">
             <div class="forecast-header">

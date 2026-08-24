@@ -72,6 +72,11 @@ const forecastGrid = document.getElementById('forecast-grid');
 const forecastError = document.getElementById('forecast-error');
 const forecastRetryBtn = document.getElementById('forecast-retry-btn');
 
+// DOM Elements - Hourly Forecast Section
+const hourlySection = document.getElementById('hourly-section');
+const hourlyGrid = document.getElementById('hourly-grid');
+const hourlyError = document.getElementById('hourly-error');
+
 /**
  * WMO Weather Interpretation Code Table
  * Maps WMO code to human-readable condition and visual assets
@@ -219,11 +224,13 @@ function setUIState(state, message = '') {
         loadingState.classList.remove('hidden');
         errorState.classList.add('hidden');
         weatherCard.classList.add('hidden');
+        if (hourlySection) hourlySection.classList.add('hidden');
         if (forecastSection) forecastSection.classList.add('hidden');
     } else if (state === 'error') {
         loadingState.classList.add('hidden');
         errorState.classList.remove('hidden');
         weatherCard.classList.add('hidden');
+        if (hourlySection) hourlySection.classList.add('hidden');
         if (forecastSection) forecastSection.classList.add('hidden');
         if (message && errorMessage) {
             errorMessage.textContent = message;
@@ -232,6 +239,7 @@ function setUIState(state, message = '') {
         loadingState.classList.add('hidden');
         errorState.classList.add('hidden');
         weatherCard.classList.remove('hidden');
+        if (hourlySection) hourlySection.classList.remove('hidden');
         if (forecastSection) {
             if (isForecastVisible) {
                 forecastSection.classList.remove('hidden');
@@ -264,6 +272,36 @@ function toggleForecast() {
             }
         }
     }
+}
+
+/**
+ * Render 8 Skeleton Placeholder Cards while Hourly Forecast is loading
+ */
+function renderHourlySkeleton() {
+    if (!hourlyGrid) return;
+    let skeletonHtml = '';
+    for (let i = 0; i < 8; i++) {
+        skeletonHtml += `
+            <div class="hourly-skeleton" aria-hidden="true">
+                <div class="skeleton-shimmer"></div>
+                <div class="skeleton-line time"></div>
+                <div class="skeleton-circle"></div>
+                <div class="skeleton-line temp"></div>
+                <div class="skeleton-line cond"></div>
+                <div class="skeleton-line rain"></div>
+            </div>
+        `;
+    }
+    hourlyGrid.innerHTML = skeletonHtml;
+    if (hourlyError) hourlyError.classList.add('hidden');
+}
+
+/**
+ * Show Hourly Error banner while preserving current weather display
+ */
+function showHourlyError() {
+    if (hourlyError) hourlyError.classList.remove('hidden');
+    if (hourlyGrid) hourlyGrid.innerHTML = '';
 }
 
 /**
@@ -300,7 +338,7 @@ function showForecastError() {
 
 /**
  * Fetch real weather data from Open-Meteo for a given location object
- * Unified request fetching current weather + 7-day daily forecast
+ * Unified request fetching current weather + 24-hour hourly forecast + 7-day daily forecast
  * @param {Object} location - Location metadata with coordinates and timezone
  * @param {boolean} isBackground - If true, performs non-destructive background update
  */
@@ -316,6 +354,7 @@ async function fetchWeatherData(location = currentLocation, isBackground = false
     if (!isBackground && !hasLoadedData) {
         setUIState('loading');
     } else if (!isBackground) {
+        renderHourlySkeleton();
         renderForecastSkeleton();
     }
 
@@ -323,8 +362,8 @@ async function fetchWeatherData(location = currentLocation, isBackground = false
         const { latitude, longitude, timezone } = location;
         const tzParam = timezone ? encodeURIComponent(timezone) : 'auto';
 
-        // Unified Open-Meteo Forecast endpoint requesting current weather + daily 7-day metrics
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,pressure_msl,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,wind_speed_10m_max&timezone=${tzParam}`;
+        // Unified Open-Meteo Forecast endpoint requesting current weather + hourly (24h) + daily (7d)
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,pressure_msl,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility&hourly=temperature_2m,weather_code,precipitation_probability,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,wind_speed_10m_max&timezone=${tzParam}`;
 
         const response = await fetch(url);
         if (!response.ok) {
@@ -344,6 +383,13 @@ async function fetchWeatherData(location = currentLocation, isBackground = false
 
         // Render current weather
         renderWeather(data, currentLocation);
+
+        // Render hourly forecast
+        if (data.hourly && Array.isArray(data.hourly.time) && data.hourly.time.length > 0) {
+            renderHourly(data.hourly, currentLocation);
+        } else {
+            showHourlyError();
+        }
 
         // Render 7-day forecast
         if (data.daily && Array.isArray(data.daily.time) && data.daily.time.length > 0) {
@@ -455,6 +501,121 @@ function renderWeather(data, location) {
     } else {
         visibilityValEl.textContent = 'N/A';
     }
+}
+
+/**
+ * Find the starting index for current hour in location's timezone
+ */
+function findCurrentHourIndex(times, timeZone) {
+    if (!times || times.length === 0) return 0;
+    try {
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat('en-CA', {
+            timeZone: timeZone || 'UTC',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            hour12: false
+        });
+        const parts = formatter.formatToParts(now);
+        const year = parts.find(p => p.type === 'year')?.value;
+        const month = parts.find(p => p.type === 'month')?.value;
+        const day = parts.find(p => p.type === 'day')?.value;
+        let hour = parts.find(p => p.type === 'hour')?.value;
+        if (hour === '24') hour = '00';
+
+        const currentPrefix = `${year}-${month}-${day}T${hour}`;
+        const index = times.findIndex(t => t.startsWith(currentPrefix));
+        return index >= 0 ? index : 0;
+    } catch {
+        return 0;
+    }
+}
+
+/**
+ * Format hourly time: "Now" for current hour, or "10 AM", "11 AM", "12 PM"
+ */
+function formatHourlyTime(isoString, isFirst, timeZone) {
+    if (isFirst) return 'Now';
+    try {
+        const dateObj = new Date(`${isoString}:00Z`);
+        return new Intl.DateTimeFormat('en-US', {
+            timeZone: 'UTC', // ISO string already corresponds to local time in that timezone
+            hour: 'numeric',
+            hour12: true
+        }).format(dateObj);
+    } catch {
+        return isoString.slice(11, 16);
+    }
+}
+
+/**
+ * Render Hourly Forecast Cards (next 24 hours) from real Open-Meteo hourly dataset
+ * @param {Object} hourly - Open-Meteo hourly forecast dataset
+ * @param {Object} location - Active location metadata
+ */
+function renderHourly(hourly, location) {
+    if (!hourlyGrid) return;
+    if (hourlyError) hourlyError.classList.add('hidden');
+
+    const times = hourly.time || [];
+    if (times.length === 0) {
+        showHourlyError();
+        return;
+    }
+
+    const startIndex = findCurrentHourIndex(times, location.timezone);
+    const endIndex = Math.min(startIndex + 24, times.length);
+    const cards = [];
+
+    for (let i = startIndex; i < endIndex; i++) {
+        const isFirst = (i === startIndex);
+        const timeStr = times[i];
+        const displayTime = formatHourlyTime(timeStr, isFirst, location.timezone);
+
+        const weatherCode = hourly.weather_code ? hourly.weather_code[i] : 0;
+        const isDay = hourly.is_day ? hourly.is_day[i] : 1;
+        const conditionInfo = resolveWeatherCondition(weatherCode, isDay);
+
+        const tempVal = (hourly.temperature_2m && hourly.temperature_2m[i] !== undefined)
+            ? `${Math.round(hourly.temperature_2m[i])}°C`
+            : '--';
+
+        const rainProbVal = (hourly.precipitation_probability && hourly.precipitation_probability[i] !== undefined && hourly.precipitation_probability[i] !== null)
+            ? `${hourly.precipitation_probability[i]}%`
+            : '0%';
+
+        const card = document.createElement('div');
+        card.className = `hourly-card${isFirst ? ' is-now' : ''}`;
+        card.setAttribute('tabindex', '0');
+        card.setAttribute('aria-label', `${displayTime}: ${conditionInfo.label}, ${tempVal}, Rain chance ${rainProbVal}`);
+
+        card.innerHTML = `
+            <span class="hourly-time">${displayTime}</span>
+            <div class="hourly-icon-wrap">
+                <img class="hourly-icon" src="${conditionInfo.remoteIconUrl}" alt="${conditionInfo.label}" loading="lazy" />
+            </div>
+            <span class="hourly-temp">${tempVal}</span>
+            <span class="hourly-condition" title="${conditionInfo.label}">${conditionInfo.label}</span>
+            <div class="hourly-rain" title="Rain probability">
+                <span class="material-symbols-outlined hourly-rain-icon">water_drop</span>
+                <span>${rainProbVal}</span>
+            </div>
+        `;
+
+        const img = card.querySelector('.hourly-icon');
+        if (img) {
+            img.onerror = () => {
+                img.src = conditionInfo.fallbackIconUrl;
+            };
+        }
+
+        cards.push(card);
+    }
+
+    hourlyGrid.innerHTML = '';
+    cards.forEach(card => hourlyGrid.appendChild(card));
 }
 
 /**
