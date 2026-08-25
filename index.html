@@ -77,36 +77,33 @@
             <!-- Card Hero: Main Temperature and Condition -->
             <div class="card-hero">
                 <div class="weather-visual">
-                    <div class="weather-icon-glow"></div>
                     <img id="weather-icon" src="weather/cloud.png" alt="Weather condition icon" class="weather-icon" />
                 </div>
                 
-                <div class="weather-main-info">
-                    <div class="temp-display">
-                        <span id="current-temp" class="temp-value">22</span>
-                        <span class="temp-degree">°C</span>
+                <div class="temp-display">
+                    <span id="current-temp" class="temp-value">22</span>
+                    <span class="temp-degree">°C</span>
+                </div>
+
+                <p id="weather-condition" class="weather-condition">Scattered Clouds</p>
+                
+                <!-- Feels Like Text -->
+                <div class="feels-like-text">
+                    Feels like <strong id="feels-like">22°C</strong>
+                </div>
+
+                <!-- Temp Range (Min / Max) -->
+                <div class="temp-range-row">
+                    <div class="range-item">
+                        <span class="material-symbols-outlined range-icon min-arrow">arrow_downward</span>
+                        <span class="range-label">Min</span>
+                        <strong id="temp-min" class="range-val">19°C</strong>
                     </div>
-                    <p id="weather-condition" class="weather-condition">Scattered Clouds</p>
-                    
-                    <!-- Temp range and feels like pill -->
-                    <div class="temp-meta-pill">
-                        <div class="meta-item">
-                            <span class="material-symbols-outlined meta-icon">thermostat</span>
-                            <span class="meta-label">Feels like</span>
-                            <strong id="feels-like" class="meta-val">22°C</strong>
-                        </div>
-                        <span class="meta-divider">•</span>
-                        <div class="meta-item">
-                            <span class="material-symbols-outlined meta-icon min-arrow">arrow_downward</span>
-                            <span class="meta-label">Min</span>
-                            <strong id="temp-min" class="meta-val">19°C</strong>
-                        </div>
-                        <span class="meta-divider">•</span>
-                        <div class="meta-item">
-                            <span class="material-symbols-outlined meta-icon max-arrow">arrow_upward</span>
-                            <span class="meta-label">Max</span>
-                            <strong id="temp-max" class="meta-val">25°C</strong>
-                        </div>
+                    <span class="range-divider">•</span>
+                    <div class="range-item">
+                        <span class="material-symbols-outlined range-icon max-arrow">arrow_upward</span>
+                        <span class="range-label">Max</span>
+                        <strong id="temp-max" class="range-val">25°C</strong>
                     </div>
                 </div>
             </div>
