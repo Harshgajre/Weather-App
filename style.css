@@ -789,34 +789,15 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    padding-bottom: 12px;
-}
-
-.hourly-title-wrap {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.hourly-header-icon {
-    font-size: 22px;
-    color: var(--accent-blue);
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .hourly-title {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
     letter-spacing: -0.2px;
     color: var(--text-main);
-}
-
-.hourly-subtitle {
-    font-size: 13px;
-    color: var(--text-muted);
-    font-weight: 500;
 }
 
 /* Hourly Error State */
@@ -850,15 +831,15 @@ body {
 /* Hourly Grid / Scrollable Track */
 .hourly-grid {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
-    padding: 4px 2px 10px 2px;
+    padding: 2px 2px 8px 2px;
     -webkit-overflow-scrolling: touch;
 }
 
 .hourly-grid::-webkit-scrollbar {
-    height: 6px;
+    height: 5px;
 }
 
 .hourly-grid::-webkit-scrollbar-track {
@@ -867,7 +848,7 @@ body {
 }
 
 .hourly-grid::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.16);
     border-radius: 9999px;
 }
 
@@ -877,150 +858,123 @@ body {
 
 /* Hourly Card */
 .hourly-card {
-    min-width: 96px;
-    flex: 0 0 96px;
+    min-width: 82px;
+    flex: 0 0 82px;
     scroll-snap-align: start;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.07);
     border-radius: var(--radius-md);
-    padding: 14px 8px;
+    padding: 12px 6px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 6px;
     text-align: center;
-    position: relative;
-    overflow: hidden;
     transition: var(--transition-smooth);
     cursor: default;
 }
 
-.hourly-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 70%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-}
-
 .hourly-card:hover {
-    transform: translateY(-3px);
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(56, 189, 248, 0.4);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25), 0 0 12px rgba(56, 189, 248, 0.12);
-}
-
-.hourly-card:hover::before {
-    opacity: 1;
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(56, 189, 248, 0.35);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
 .hourly-card.is-now {
-    background: rgba(56, 189, 248, 0.12);
-    border-color: rgba(56, 189, 248, 0.4);
-    box-shadow: 0 4px 14px rgba(56, 189, 248, 0.15);
+    background: rgba(56, 189, 248, 0.1);
+    border-color: rgba(56, 189, 248, 0.35);
 }
 
 .hourly-time {
     font-size: 13px;
-    font-weight: 700;
-    color: var(--text-main);
+    font-weight: 600;
+    color: var(--text-muted);
     letter-spacing: -0.2px;
 }
 
 .hourly-card.is-now .hourly-time {
     color: var(--accent-blue);
+    font-weight: 700;
 }
 
 .hourly-icon-wrap {
-    position: relative;
-    width: 42px;
-    height: 42px;
+    width: 38px;
+    height: 38px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .hourly-icon {
-    width: 38px;
-    height: 38px;
+    width: 34px;
+    height: 34px;
     object-fit: contain;
-    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.2));
-    transition: transform 0.3s ease;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2));
+    transition: transform 0.2s ease;
 }
 
 .hourly-card:hover .hourly-icon {
-    transform: scale(1.12);
+    transform: scale(1.08);
 }
 
 .hourly-temp {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
     color: var(--text-main);
     letter-spacing: -0.3px;
-}
-
-.hourly-condition {
-    font-size: 11px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.8);
-    line-height: 1.2;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
 }
 
 .hourly-rain {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 3px;
+    gap: 2px;
     font-size: 11px;
     font-weight: 600;
     color: var(--accent-blue);
-    margin-top: 2px;
 }
 
 .hourly-rain-icon {
-    font-size: 13px;
+    font-size: 12px;
 }
 
 /* Hourly Skeleton Loading Cards */
 .hourly-skeleton {
-    min-width: 96px;
-    flex: 0 0 96px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    min-width: 82px;
+    flex: 0 0 82px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: var(--radius-md);
-    padding: 14px 8px;
+    padding: 12px 6px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     position: relative;
     overflow: hidden;
-    min-height: 155px;
+    min-height: 124px;
 }
 
 .hourly-skeleton .skeleton-line.time {
-    width: 44px;
-    height: 12px;
+    width: 38px;
+    height: 11px;
 }
 
 .hourly-skeleton .skeleton-circle {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
 }
 
 .hourly-skeleton .skeleton-line.temp {
-    width: 36px;
-    height: 14px;
+    width: 32px;
+    height: 13px;
+}
+
+.hourly-skeleton .skeleton-line.rain {
+    width: 26px;
+    height: 10px;
 }
 
 .hourly-skeleton .skeleton-line.cond {

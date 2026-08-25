@@ -285,7 +285,6 @@ function renderHourlySkeleton() {
                 <div class="skeleton-line time"></div>
                 <div class="skeleton-circle"></div>
                 <div class="skeleton-line temp"></div>
-                <div class="skeleton-line cond"></div>
                 <div class="skeleton-line rain"></div>
             </div>
         `;
@@ -581,7 +580,6 @@ function renderHourly(hourly, location) {
                 <img class="hourly-icon" src="${conditionInfo.remoteIconUrl}" alt="${conditionInfo.label}" loading="lazy" />
             </div>
             <span class="hourly-temp">${tempVal}</span>
-            <span class="hourly-condition" title="${conditionInfo.label}">${conditionInfo.label}</span>
             <div class="hourly-rain" title="Rain probability">
                 <span class="material-symbols-outlined hourly-rain-icon">water_drop</span>
                 <span>${rainProbVal}</span>
