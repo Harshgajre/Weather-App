@@ -62,8 +62,6 @@ const tempMaxEl = document.getElementById('temp-max');
 
 const humidityValEl = document.getElementById('humidity-val');
 const windValEl = document.getElementById('wind-val');
-const pressureValEl = document.getElementById('pressure-val');
-const visibilityValEl = document.getElementById('visibility-val');
 
 // DOM Elements - 7-Day Forecast Section
 const forecastSection = document.getElementById('forecast-section');
@@ -487,20 +485,6 @@ function renderWeather(data, location) {
     windValEl.textContent = current.wind_speed_10m !== undefined
         ? `${Math.round(current.wind_speed_10m)} km/h`
         : 'N/A';
-
-    // Atmospheric Pressure (hPa)
-    const pressure = current.pressure_msl ?? current.surface_pressure;
-    pressureValEl.textContent = pressure !== undefined
-        ? `${Math.round(pressure)} hPa`
-        : 'N/A';
-
-    // Visibility (Convert meters to km)
-    if (current.visibility !== undefined) {
-        const visKm = (current.visibility / 1000).toFixed(1);
-        visibilityValEl.textContent = `${visKm} km`;
-    } else {
-        visibilityValEl.textContent = 'N/A';
-    }
 }
 
 /**
