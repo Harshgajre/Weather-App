@@ -645,16 +645,9 @@ function renderForecast(daily, location) {
             ? `${daily.precipitation_probability_max[i]}%`
             : '0%';
 
-        const precipSum = (daily.precipitation_sum && daily.precipitation_sum[i] !== undefined && daily.precipitation_sum[i] !== null)
-            ? daily.precipitation_sum[i]
-            : 0;
-
         const windSpeed = (daily.wind_speed_10m_max && daily.wind_speed_10m_max[i] !== undefined && daily.wind_speed_10m_max[i] !== null)
             ? `${Math.round(daily.wind_speed_10m_max[i])} km/h`
             : 'N/A';
-
-        // Additional precipitation sum badge if rainfall is present
-        const precipLabel = precipSum > 0 ? ` (${precipSum.toFixed(1)}mm)` : '';
 
         const card = document.createElement('div');
         card.className = `forecast-card${dayInfo.isToday ? ' is-today' : ''}`;
@@ -685,9 +678,9 @@ function renderForecast(daily, location) {
             </div>
 
             <div class="forecast-metrics">
-                <div class="forecast-metric-item" title="Precipitation Probability & Amount">
+                <div class="forecast-metric-item" title="Precipitation Probability">
                     <span class="material-symbols-outlined forecast-metric-icon rain">water_drop</span>
-                    <span class="forecast-metric-val">${rainProb}${precipLabel}</span>
+                    <span class="forecast-metric-val">${rainProb}</span>
                 </div>
                 <div class="forecast-metric-item" title="Max Wind Speed">
                     <span class="material-symbols-outlined forecast-metric-icon wind">air</span>
