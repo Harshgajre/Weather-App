@@ -168,20 +168,24 @@ function getWindDirection(degrees) {
 }
 
 /**
- * Format timestamp into HH:MM:SS using the location's local timezone
+ * Format timestamp into 12-hour format (e.g., "10:45:32 PM") using the location's local timezone
  */
 function getFormattedTime(timeZone) {
     const now = new Date();
     try {
-        return new Intl.DateTimeFormat('en-GB', {
-            timeZone: timeZone && timeZone !== 'auto' ? timeZone : 'UTC',
-            hour: '2-digit',
+        return new Intl.DateTimeFormat('en-US', {
+            timeZone: timeZone && timeZone !== 'auto' ? timeZone : undefined,
+            hour: 'numeric',
             minute: '2-digit',
             second: '2-digit',
-            hour12: false
+            hour12: true
         }).format(now);
     } catch {
-        return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        try {
+            return now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+        } catch {
+            return 'N/A';
+        }
     }
 }
 
@@ -482,9 +486,9 @@ function renderWeather(data, location) {
         countryCodeEl.style.display = 'none';
     }
 
-    // 2. Location-aware Last Updated timestamp (HH:MM:SS)
+    // 2. Location-aware Last Updated timestamp (e.g. "Last updated: 10:45:32 PM")
     const formattedTime = getFormattedTime(location.timezone);
-    lastUpdatedEl.textContent = `Last updated: ${formattedTime}`;
+    lastUpdatedEl.textContent = formattedTime === 'N/A' ? 'Last updated: N/A' : `Last updated: ${formattedTime}`;
 
     // 3. Condition & Icon (day/night status considered)
     const weatherCode = current.weather_code !== undefined ? current.weather_code : 0;
@@ -525,14 +529,11 @@ function renderWeather(data, location) {
         : 'N/A';
     humidityValEl.textContent = humidity;
 
-    // 6. Wind Speed & Direction
-    let windDisplay = 'N/A';
-    if (current.wind_speed_10m !== undefined && current.wind_speed_10m !== null) {
-        const speed = Math.round(current.wind_speed_10m);
-        const compassDir = getWindDirection(current.wind_direction_10m);
-        windDisplay = compassDir ? `${speed} km/h ${compassDir}` : `${speed} km/h`;
-    }
-    windValEl.textContent = windDisplay;
+    // 6. Wind Speed (km/h)
+    const windSpeed = (current.wind_speed_10m !== undefined && current.wind_speed_10m !== null)
+        ? `${Math.round(current.wind_speed_10m)} km/h`
+        : 'N/A';
+    windValEl.textContent = windSpeed;
 
     // 7. Contextual Detail Titles / Tooltips (incorporating cloud cover, gusts, precipitation, day/night)
     const humidityCard = humidityValEl.closest('.detail-card');
@@ -546,7 +547,9 @@ function renderWeather(data, location) {
     if (windCard) {
         const gusts = current.wind_gusts_10m !== undefined && current.wind_gusts_10m !== null ? `${Math.round(current.wind_gusts_10m)} km/h` : 'N/A';
         const deg = current.wind_direction_10m !== undefined && current.wind_direction_10m !== null ? `${current.wind_direction_10m}°` : 'N/A';
-        windCard.title = `Wind Speed: ${windDisplay} | Direction: ${deg} | Gusts: ${gusts}`;
+        const compassDir = getWindDirection(current.wind_direction_10m);
+        const dirText = compassDir ? ` (${compassDir})` : '';
+        windCard.title = `Wind Speed: ${windSpeed} | Direction: ${deg}${dirText} | Gusts: ${gusts}`;
     }
 }
 
@@ -943,11 +946,17 @@ function setupEventListeners() {
     });
 }
 
-// Initial application bootstrap
-window.addEventListener('DOMContentLoaded', () => {
+// Application bootstrap
+function initApp() {
     setupEventListeners();
     // 1. Immediately fetch real weather and forecast for default location (Ahmedabad)
     fetchWeatherData(DEFAULT_LOCATION, false);
     // 2. Start the 60-second automatic refresh timer
     startAutoRefresh();
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
+}
