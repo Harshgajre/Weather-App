@@ -125,16 +125,20 @@ body {
 }
 
 /* ==========================================================================
-   Search Header
+   Search Header & Location Button
    ========================================================================== */
 .search-header {
     width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .search-box {
     position: relative;
     display: flex;
     align-items: center;
+    flex: 1;
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -143,6 +147,52 @@ body {
     padding: 6px 8px 6px 18px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
     transition: var(--transition-smooth);
+}
+
+.current-location-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-pill);
+    padding: 0 20px;
+    height: 54px;
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    transition: var(--transition-smooth);
+    flex-shrink: 0;
+}
+
+.current-location-btn:hover {
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(37, 99, 235, 0.3));
+    border-color: rgba(56, 189, 248, 0.5);
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgba(56, 189, 248, 0.25);
+}
+
+.current-location-btn:active {
+    transform: scale(0.98);
+}
+
+.current-location-btn .location-btn-icon {
+    font-size: 20px;
+    color: var(--accent-blue);
+    transition: transform 0.3s ease;
+}
+
+.current-location-btn:hover .location-btn-icon {
+    transform: scale(1.12);
 }
 
 .search-box:focus-within {
@@ -1415,6 +1465,22 @@ body {
         min-width: 120px;
         flex: 0 0 120px;
         scroll-snap-align: start;
+    }
+}
+
+@media (max-width: 600px) {
+    .search-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .search-box,
+    .current-location-btn {
+        width: 100%;
+    }
+
+    .current-location-btn {
+        height: 48px;
     }
 }
 
