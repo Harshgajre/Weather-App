@@ -1,16 +1,16 @@
 /**
- * Weather App - Open-Meteo Integration with 7-Day Real Forecast
+ * Weather App - Dynamic Worldwide Weather System
  * Features:
- * - Default location: Ahmedabad, Gujarat, India (lat: 23.0225, lon: 72.5714)
- * - Open-Meteo Forecast & Geocoding APIs (No API key required)
- * - Unified single request for current weather + 7-day daily forecast
- * - 60-second automatic refresh with manual refresh control
- * - Location-aware timezone formatting for time & forecast days
- * - Full WMO weather code translation with visual icons
- * - Resilient error handling retaining prior valid data
+ * - Real current weather & forecasts for ANY valid location worldwide
+ * - Global Geocoding API integration with intelligent multi-match & country/code resolution
+ * - Open-Meteo Forecast API (Current + 24-Hour Hourly + 7-Day Forecast)
+ * - Dynamic location-aware timezone support for clocks, hourly offsets, and day labels
+ * - 60-second automatic refresh of the ACTIVE selected location
+ * - Full WMO weather code mapping with day/night awareness and fallback assets
+ * - Resilient error handling adhering strictly to specified messaging guidelines
  */
 
-// Default configuration for Ahmedabad, Gujarat, India
+// Default configuration for initial bootstrap only (Ahmedabad, Gujarat, India)
 const DEFAULT_LOCATION = {
     name: 'Ahmedabad',
     admin1: 'Gujarat',
@@ -23,6 +23,30 @@ const DEFAULT_LOCATION = {
 
 // Auto-refresh interval duration in milliseconds (60 seconds)
 const REFRESH_INTERVAL_MS = 60000;
+
+// Common country alias and code mapping for robust geocoding resolution
+const COUNTRY_ALIAS_MAP = {
+    'uk': 'GB', 'gbr': 'GB', 'united kingdom': 'GB', 'great britain': 'GB', 'britain': 'GB', 'england': 'GB', 'scotland': 'GB', 'wales': 'GB',
+    'usa': 'US', 'united states': 'US', 'united states of america': 'US', 'america': 'US',
+    'uae': 'AE', 'united arab emirates': 'AE',
+    'in': 'IN', 'india': 'IN',
+    'jp': 'JP', 'japan': 'JP',
+    'fr': 'FR', 'france': 'FR',
+    'de': 'DE', 'germany': 'DE',
+    'au': 'AU', 'australia': 'AU',
+    'ca': 'CA', 'canada': 'CA',
+    'br': 'BR', 'brazil': 'BR', 'brasil': 'BR',
+    'za': 'ZA', 'south africa': 'ZA',
+    'kr': 'KR', 'south korea': 'KR', 'korea': 'KR',
+    'eg': 'EG', 'egypt': 'EG',
+    'sg': 'SG', 'singapore': 'SG',
+    'it': 'IT', 'italy': 'IT',
+    'es': 'ES', 'spain': 'ES',
+    'mx': 'MX', 'mexico': 'MX',
+    'ru': 'RU', 'russia': 'RU',
+    'cn': 'CN', 'china': 'CN',
+    'nz': 'NZ', 'new zealand': 'NZ'
+};
 
 // Application State
 let currentLocation = { ...DEFAULT_LOCATION };
@@ -42,6 +66,8 @@ const toggleForecastText = document.getElementById('toggle-forecast-text');
 // DOM Elements - States & Containers
 const loadingState = document.getElementById('loading-state');
 const errorState = document.getElementById('error-state');
+const errorTitle = document.getElementById('error-title');
+const errorIcon = document.getElementById('error-icon');
 const errorMessage = document.getElementById('error-message');
 const weatherCard = document.getElementById('weather-card');
 const weatherToast = document.getElementById('weather-toast');
@@ -132,13 +158,23 @@ function resolveWeatherCondition(weatherCode, isDay = 1) {
 }
 
 /**
+ * Helper to convert wind direction degrees (0 - 360) into compass direction (e.g. N, ENE, SW)
+ */
+function getWindDirection(degrees) {
+    if (degrees === undefined || degrees === null || isNaN(degrees)) return '';
+    const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+    const index = Math.round(((degrees % 360) + 360) % 360 / 22.5) % 16;
+    return directions[index];
+}
+
+/**
  * Format timestamp into HH:MM:SS using the location's local timezone
  */
 function getFormattedTime(timeZone) {
     const now = new Date();
     try {
         return new Intl.DateTimeFormat('en-GB', {
-            timeZone: timeZone || 'UTC',
+            timeZone: timeZone && timeZone !== 'auto' ? timeZone : 'UTC',
             hour: '2-digit',
             minute: '2-digit',
             second: '2-digit',
@@ -164,10 +200,9 @@ function formatForecastDay(dateString, index, timeZone) {
     }
 
     try {
-        // Appending T12:00:00Z ensures the date doesn't shift unexpectedly across timezones
         const dateObj = new Date(`${dateString}T12:00:00Z`);
         const weekday = new Intl.DateTimeFormat('en-US', {
-            timeZone: timeZone || 'UTC',
+            timeZone: 'UTC',
             weekday: 'short'
         }).format(dateObj);
         return { label: weekday, isToday: false };
@@ -183,7 +218,7 @@ function formatForecastDate(dateString, timeZone) {
     try {
         const dateObj = new Date(`${dateString}T12:00:00Z`);
         return new Intl.DateTimeFormat('en-US', {
-            timeZone: timeZone || 'UTC',
+            timeZone: 'UTC',
             day: 'numeric',
             month: 'short'
         }).format(dateObj);
@@ -217,7 +252,7 @@ function hideToast() {
 /**
  * Set Main UI State: 'loading' | 'error' | 'content'
  */
-function setUIState(state, message = '') {
+function setUIState(state, message = '', title = 'Location Not Found', iconName = 'location_off') {
     if (state === 'loading') {
         loadingState.classList.remove('hidden');
         errorState.classList.add('hidden');
@@ -230,7 +265,13 @@ function setUIState(state, message = '') {
         weatherCard.classList.add('hidden');
         if (hourlySection) hourlySection.classList.add('hidden');
         if (forecastSection) forecastSection.classList.add('hidden');
-        if (message && errorMessage) {
+        if (errorTitle) {
+            errorTitle.textContent = title;
+        }
+        if (errorIcon) {
+            errorIcon.textContent = iconName;
+        }
+        if (errorMessage) {
             errorMessage.textContent = message;
         }
     } else if (state === 'content') {
@@ -273,7 +314,7 @@ function toggleForecast() {
 }
 
 /**
- * Render 8 Skeleton Placeholder Cards while Hourly Forecast is loading
+ * Render Skeleton Placeholder Cards while Hourly Forecast is loading
  */
 function renderHourlySkeleton() {
     if (!hourlyGrid) return;
@@ -302,7 +343,7 @@ function showHourlyError() {
 }
 
 /**
- * Render 7 Skeleton Placeholder Cards while Forecast is loading
+ * Render Skeleton Placeholder Cards while Forecast is loading
  */
 function renderForecastSkeleton() {
     if (!forecastGrid) return;
@@ -357,7 +398,7 @@ async function fetchWeatherData(location = currentLocation, isBackground = false
 
     try {
         const { latitude, longitude, timezone } = location;
-        const tzParam = timezone ? encodeURIComponent(timezone) : 'auto';
+        const tzParam = timezone && timezone !== 'auto' ? encodeURIComponent(timezone) : 'auto';
 
         // Unified Open-Meteo Forecast endpoint requesting current weather + hourly (24h) + daily (7d)
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,pressure_msl,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility&hourly=temperature_2m,weather_code,precipitation_probability,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,wind_speed_10m_max&timezone=${tzParam}`;
@@ -402,9 +443,9 @@ async function fetchWeatherData(location = currentLocation, isBackground = false
         console.error('Weather fetch error:', error);
         if (hasLoadedData) {
             // Keep previous weather data visible and notify user
-            showToast('Unable to fetch the latest weather data.');
+            showToast('Unable to fetch the latest weather data. Please try again.');
         } else {
-            setUIState('error', 'Unable to fetch weather data. Please check your network connection and retry.');
+            setUIState('error', 'Unable to fetch the latest weather data. Please try again.', 'Unable to Fetch Weather', 'cloud_off');
         }
     } finally {
         isFetching = false;
@@ -415,16 +456,16 @@ async function fetchWeatherData(location = currentLocation, isBackground = false
 }
 
 /**
- * Render real current weather data into the UI
+ * Render real current weather data dynamically from API response
  */
 function renderWeather(data, location) {
     const current = data.current;
     const daily = data.daily;
 
     // 1. Location Header
-    cityNameEl.textContent = location.name || 'Ahmedabad';
+    cityNameEl.textContent = location.name || 'Unknown Location';
 
-    // Format subtitle/badge: "State, Country" or "Country"
+    // Format subtitle/badge: "State, Country" or "Country" or "CountryCode"
     let locationSubtitle = '';
     if (location.admin1 && location.country && location.admin1 !== location.name) {
         locationSubtitle = `${location.admin1}, ${location.country}`;
@@ -445,7 +486,7 @@ function renderWeather(data, location) {
     const formattedTime = getFormattedTime(location.timezone);
     lastUpdatedEl.textContent = `Last updated: ${formattedTime}`;
 
-    // 3. Condition & Icon
+    // 3. Condition & Icon (day/night status considered)
     const weatherCode = current.weather_code !== undefined ? current.weather_code : 0;
     const isDay = current.is_day !== undefined ? current.is_day : 1;
     const conditionInfo = resolveWeatherCondition(weatherCode, isDay);
@@ -458,32 +499,55 @@ function renderWeather(data, location) {
     };
 
     // 4. Main Temperatures & Daily Min/Max
-    const tempVal = current.temperature_2m !== undefined ? Math.round(current.temperature_2m) : '--';
-    const feelsLikeVal = current.apparent_temperature !== undefined ? Math.round(current.apparent_temperature) : tempVal;
+    const tempVal = current.temperature_2m !== undefined && current.temperature_2m !== null
+        ? Math.round(current.temperature_2m)
+        : '--';
+    const feelsLikeVal = current.apparent_temperature !== undefined && current.apparent_temperature !== null
+        ? `${Math.round(current.apparent_temperature)}°C`
+        : (tempVal !== '--' ? `${tempVal}°C` : 'N/A');
 
     // Daily min/max from API response
-    const tempMinVal = (daily && daily.temperature_2m_min && daily.temperature_2m_min[0] !== undefined)
-        ? Math.round(daily.temperature_2m_min[0])
-        : tempVal;
-    const tempMaxVal = (daily && daily.temperature_2m_max && daily.temperature_2m_max[0] !== undefined)
-        ? Math.round(daily.temperature_2m_max[0])
-        : tempVal;
+    const tempMinVal = (daily && daily.temperature_2m_min && daily.temperature_2m_min[0] !== undefined && daily.temperature_2m_min[0] !== null)
+        ? `${Math.round(daily.temperature_2m_min[0])}°C`
+        : (tempVal !== '--' ? `${tempVal}°C` : 'N/A');
+    const tempMaxVal = (daily && daily.temperature_2m_max && daily.temperature_2m_max[0] !== undefined && daily.temperature_2m_max[0] !== null)
+        ? `${Math.round(daily.temperature_2m_max[0])}°C`
+        : (tempVal !== '--' ? `${tempVal}°C` : 'N/A');
 
     currentTempEl.textContent = tempVal;
-    feelsLikeEl.textContent = `${feelsLikeVal}°C`;
-    tempMinEl.textContent = `${tempMinVal}°C`;
-    tempMaxEl.textContent = `${tempMaxVal}°C`;
+    feelsLikeEl.textContent = feelsLikeVal;
+    tempMinEl.textContent = tempMinVal;
+    tempMaxEl.textContent = tempMaxVal;
 
-    // 5. Details Section (All from real API values)
-    // Humidity (%)
-    humidityValEl.textContent = current.relative_humidity_2m !== undefined
+    // 5. Humidity (%)
+    const humidity = (current.relative_humidity_2m !== undefined && current.relative_humidity_2m !== null)
         ? `${current.relative_humidity_2m}%`
         : 'N/A';
+    humidityValEl.textContent = humidity;
 
-    // Wind Speed (km/h)
-    windValEl.textContent = current.wind_speed_10m !== undefined
-        ? `${Math.round(current.wind_speed_10m)} km/h`
-        : 'N/A';
+    // 6. Wind Speed & Direction
+    let windDisplay = 'N/A';
+    if (current.wind_speed_10m !== undefined && current.wind_speed_10m !== null) {
+        const speed = Math.round(current.wind_speed_10m);
+        const compassDir = getWindDirection(current.wind_direction_10m);
+        windDisplay = compassDir ? `${speed} km/h ${compassDir}` : `${speed} km/h`;
+    }
+    windValEl.textContent = windDisplay;
+
+    // 7. Contextual Detail Titles / Tooltips (incorporating cloud cover, gusts, precipitation, day/night)
+    const humidityCard = humidityValEl.closest('.detail-card');
+    if (humidityCard) {
+        const cloudCover = current.cloud_cover !== undefined && current.cloud_cover !== null ? `${current.cloud_cover}%` : 'N/A';
+        const precip = current.precipitation !== undefined && current.precipitation !== null ? `${current.precipitation} mm` : '0 mm';
+        humidityCard.title = `Humidity: ${humidity} | Cloud Cover: ${cloudCover} | Precipitation: ${precip}`;
+    }
+
+    const windCard = windValEl.closest('.detail-card');
+    if (windCard) {
+        const gusts = current.wind_gusts_10m !== undefined && current.wind_gusts_10m !== null ? `${Math.round(current.wind_gusts_10m)} km/h` : 'N/A';
+        const deg = current.wind_direction_10m !== undefined && current.wind_direction_10m !== null ? `${current.wind_direction_10m}°` : 'N/A';
+        windCard.title = `Wind Speed: ${windDisplay} | Direction: ${deg} | Gusts: ${gusts}`;
+    }
 }
 
 /**
@@ -494,7 +558,7 @@ function findCurrentHourIndex(times, timeZone) {
     try {
         const now = new Date();
         const formatter = new Intl.DateTimeFormat('en-CA', {
-            timeZone: timeZone || 'UTC',
+            timeZone: timeZone && timeZone !== 'auto' ? timeZone : 'UTC',
             year: 'numeric',
             month: '2-digit',
             day: '2-digit',
@@ -519,15 +583,15 @@ function findCurrentHourIndex(times, timeZone) {
 /**
  * Format hourly time: "Now" for current hour, or "10 AM", "11 AM", "12 PM"
  */
-function formatHourlyTime(isoString, isFirst, timeZone) {
+function formatHourlyTime(isoString, isFirst) {
     if (isFirst) return 'Now';
     try {
-        const dateObj = new Date(`${isoString}:00Z`);
-        return new Intl.DateTimeFormat('en-US', {
-            timeZone: 'UTC', // ISO string already corresponds to local time in that timezone
-            hour: 'numeric',
-            hour12: true
-        }).format(dateObj);
+        const hourPart = isoString.slice(11, 13);
+        const hourNum = parseInt(hourPart, 10);
+        if (isNaN(hourNum)) return isoString.slice(11, 16);
+        const period = hourNum >= 12 ? 'PM' : 'AM';
+        const displayHour = hourNum % 12 === 0 ? 12 : hourNum % 12;
+        return `${displayHour} ${period}`;
     } catch {
         return isoString.slice(11, 16);
     }
@@ -555,13 +619,13 @@ function renderHourly(hourly, location) {
     for (let i = startIndex; i < endIndex; i++) {
         const isFirst = (i === startIndex);
         const timeStr = times[i];
-        const displayTime = formatHourlyTime(timeStr, isFirst, location.timezone);
+        const displayTime = formatHourlyTime(timeStr, isFirst);
 
         const weatherCode = hourly.weather_code ? hourly.weather_code[i] : 0;
         const isDay = hourly.is_day ? hourly.is_day[i] : 1;
         const conditionInfo = resolveWeatherCondition(weatherCode, isDay);
 
-        const tempVal = (hourly.temperature_2m && hourly.temperature_2m[i] !== undefined)
+        const tempVal = (hourly.temperature_2m && hourly.temperature_2m[i] !== undefined && hourly.temperature_2m[i] !== null)
             ? `${Math.round(hourly.temperature_2m[i])}°C`
             : '--';
 
@@ -609,7 +673,7 @@ function renderForecast(daily, location) {
     if (!forecastGrid) return;
 
     if (forecastCityNameEl) {
-        forecastCityNameEl.textContent = location.name || 'Ahmedabad';
+        forecastCityNameEl.textContent = location.name || 'Location';
     }
 
     if (forecastError) {
@@ -634,10 +698,10 @@ function renderForecast(daily, location) {
         const weatherCode = daily.weather_code ? daily.weather_code[i] : 0;
         const conditionInfo = resolveWeatherCondition(weatherCode, 1); // Daytime iconography for daily overview
 
-        const maxTemp = (daily.temperature_2m_max && daily.temperature_2m_max[i] !== undefined)
+        const maxTemp = (daily.temperature_2m_max && daily.temperature_2m_max[i] !== undefined && daily.temperature_2m_max[i] !== null)
             ? Math.round(daily.temperature_2m_max[i])
             : '--';
-        const minTemp = (daily.temperature_2m_min && daily.temperature_2m_min[i] !== undefined)
+        const minTemp = (daily.temperature_2m_min && daily.temperature_2m_min[i] !== undefined && daily.temperature_2m_min[i] !== null)
             ? Math.round(daily.temperature_2m_min[i])
             : '--';
 
@@ -705,18 +769,84 @@ function renderForecast(daily, location) {
 }
 
 /**
- * Search city coordinates using Open-Meteo Geocoding API
+ * Intelligent Geocoding Lookup via Open-Meteo Geocoding API
+ * Robust handling for:
+ * - Direct city searches: "Tokyo", "London", "São Paulo"
+ * - City + Country/Region queries: "London, UK", "Paris, France", "Sydney, AU", "Toronto, Canada"
+ * - Multi-match ranking & disambiguation
+ */
+async function geocodeLocation(rawQuery) {
+    const query = rawQuery.trim();
+    if (!query) return null;
+
+    // 1. Direct query
+    const directUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=10&language=en&format=json`;
+    const directRes = await fetch(directUrl);
+    if (!directRes.ok) {
+        throw new Error(`Geocoding network error: ${directRes.status}`);
+    }
+
+    const directData = await directRes.json();
+    if (directData.results && directData.results.length > 0) {
+        return directData.results[0];
+    }
+
+    // 2. Query refinement for inputs with comma or country modifiers (e.g. 'London, UK', 'Mumbai, IN', 'Paris, FR')
+    let parts = [];
+    const separators = [',', ' - '];
+    for (const sep of separators) {
+        if (query.includes(sep)) {
+            parts = query.split(sep).map(s => s.trim()).filter(Boolean);
+            break;
+        }
+    }
+
+    if (parts.length < 2) {
+        const words = query.split(/\s+/);
+        if (words.length >= 2) {
+            const lastWord = words[words.length - 1].toLowerCase();
+            if (COUNTRY_ALIAS_MAP[lastWord] || (lastWord.length === 2 && /^[a-z]{2}$/.test(lastWord))) {
+                parts = [words.slice(0, -1).join(' '), lastWord];
+            }
+        }
+    }
+
+    if (parts.length >= 2) {
+        const cityName = parts[0];
+        const modifier = parts.slice(1).join(' ').toLowerCase();
+        const targetCountryCode = COUNTRY_ALIAS_MAP[modifier] || (modifier.length === 2 ? modifier.toUpperCase() : null);
+
+        const fallbackUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=10&language=en&format=json`;
+        const fallbackRes = await fetch(fallbackUrl);
+        if (!fallbackRes.ok) {
+            throw new Error(`Geocoding network error: ${fallbackRes.status}`);
+        }
+
+        const fallbackData = await fallbackRes.json();
+        if (fallbackData.results && fallbackData.results.length > 0) {
+            // Find best matching item according to country code / country name / region
+            const matched = fallbackData.results.find(r => {
+                const cCode = (r.country_code || '').toUpperCase();
+                const country = (r.country || '').toLowerCase();
+                const admin1 = (r.admin1 || '').toLowerCase();
+                if (targetCountryCode && cCode === targetCountryCode) return true;
+                if (country.includes(modifier) || modifier.includes(country)) return true;
+                if (admin1.includes(modifier) || modifier.includes(admin1)) return true;
+                return false;
+            });
+            return matched || fallbackData.results[0];
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Handle user search request
  */
 async function searchCity(cityName) {
     const query = cityName.trim();
     if (!query) return;
-
-    // Check if user searched specifically for Ahmedabad
-    if (query.toLowerCase() === 'ahmedabad') {
-        currentLocation = { ...DEFAULT_LOCATION };
-        await fetchWeatherData(currentLocation, false);
-        return;
-    }
 
     setUIState('loading');
     if (refreshBtn) {
@@ -724,34 +854,30 @@ async function searchCity(cityName) {
     }
 
     try {
-        const geocodeUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`;
-        const response = await fetch(geocodeUrl);
-        if (!response.ok) {
-            throw new Error(`Geocoding failed with status ${response.status}`);
-        }
+        const result = await geocodeLocation(query);
 
-        const data = await response.json();
-        if (!data.results || data.results.length === 0) {
-            setUIState('error', `We couldn't find "${query}". Please check the spelling and try again.`);
+        if (!result) {
+            setUIState('error', 'City/Location not found. Please enter a valid location.', 'Location Not Found', 'location_off');
             return;
         }
 
-        const firstResult = data.results[0];
         const newLocation = {
-            name: firstResult.name,
-            admin1: firstResult.admin1 || '',
-            country: firstResult.country || '',
-            countryCode: firstResult.country_code || '',
-            latitude: firstResult.latitude,
-            longitude: firstResult.longitude,
-            timezone: firstResult.timezone || 'auto'
+            name: result.name,
+            admin1: result.admin1 || '',
+            country: result.country || '',
+            countryCode: result.country_code || '',
+            latitude: result.latitude,
+            longitude: result.longitude,
+            timezone: result.timezone || 'auto'
         };
 
         currentLocation = newLocation;
         await fetchWeatherData(currentLocation, false);
+        // Reset auto-refresh timer to synchronize with the new search
+        startAutoRefresh();
     } catch (error) {
-        console.error('Geocoding search error:', error);
-        setUIState('error', `Unable to search for "${query}". Please verify your network and try again.`);
+        console.error('Search error:', error);
+        setUIState('error', 'Unable to fetch the latest weather data. Please try again.', 'Unable to Fetch Weather', 'cloud_off');
     } finally {
         if (refreshBtn) {
             refreshBtn.classList.remove('spinning');
@@ -760,7 +886,7 @@ async function searchCity(cityName) {
 }
 
 /**
- * Start or restart the 60-second automatic refresh timer
+ * Start or restart the 60-second automatic refresh timer for the ACTIVE selected location
  */
 function startAutoRefresh() {
     if (refreshTimerId) {
@@ -768,7 +894,7 @@ function startAutoRefresh() {
     }
 
     refreshTimerId = setInterval(() => {
-        // Automatically refresh in the background every 60 seconds
+        // Automatically refresh the active selected location in the background every 60 seconds
         fetchWeatherData(currentLocation, true);
     }, REFRESH_INTERVAL_MS);
 }
@@ -820,7 +946,7 @@ function setupEventListeners() {
 // Initial application bootstrap
 window.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
-    // 1. Immediately fetch weather and 7-day forecast for default location (Ahmedabad)
+    // 1. Immediately fetch real weather and forecast for default location (Ahmedabad)
     fetchWeatherData(DEFAULT_LOCATION, false);
     // 2. Start the 60-second automatic refresh timer
     startAutoRefresh();
