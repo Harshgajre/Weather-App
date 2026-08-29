@@ -168,7 +168,7 @@ function getWindDirection(degrees) {
 }
 
 /**
- * Format timestamp into 12-hour format (e.g., "10:45:32 PM") using the location's local timezone
+ * Format timestamp into clean 12-hour format (e.g., "10:45 PM") using the location's local timezone
  */
 function getFormattedTime(timeZone) {
     const now = new Date();
@@ -177,12 +177,11 @@ function getFormattedTime(timeZone) {
             timeZone: timeZone && timeZone !== 'auto' ? timeZone : undefined,
             hour: 'numeric',
             minute: '2-digit',
-            second: '2-digit',
             hour12: true
         }).format(now);
     } catch {
         try {
-            return now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+            return now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
         } catch {
             return 'N/A';
         }
