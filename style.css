@@ -215,6 +215,7 @@ body {
 
 .search-box input {
     flex: 1;
+    height: 40px;
     background: transparent;
     border: none;
     outline: none;
@@ -230,38 +231,62 @@ body {
     font-weight: 400;
 }
 
+#search-btn,
 .search-box button {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 40px;
     height: 40px;
+    min-width: 40px;
+    min-height: 40px;
     border-radius: 50%;
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
     background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
     color: #ffffff;
     cursor: pointer;
-    transition: var(--transition-smooth);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+    outline: none;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.3);
     flex-shrink: 0;
+    position: relative;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
+#search-btn .material-symbols-outlined,
 .search-box button .material-symbols-outlined {
     font-size: 20px;
-    transition: transform 0.25s ease;
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+#search-btn:hover,
 .search-box button:hover {
+    background: linear-gradient(135deg, #60a5fa 0%, #1d4ed8 100%);
+    border-color: rgba(255, 255, 255, 0.35);
     transform: scale(1.05);
-    box-shadow: 0 6px 18px rgba(56, 189, 248, 0.45);
+    box-shadow: 0 6px 20px rgba(56, 189, 248, 0.45), 0 0 0 2px rgba(56, 189, 248, 0.25);
 }
 
-.search-box button:active {
-    transform: scale(0.95);
-}
-
+#search-btn:hover .material-symbols-outlined,
 .search-box button:hover .material-symbols-outlined {
     transform: translateX(2px);
+}
+
+#search-btn:active,
+.search-box button:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+}
+
+#search-btn:focus-visible,
+.search-box button:focus-visible {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: 2px;
 }
 
 /* ==========================================================================
