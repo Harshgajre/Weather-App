@@ -59,6 +59,7 @@ let isForecastVisible = false;
 // DOM Elements - Search & Control
 const searchBtn = document.getElementById('search-btn');
 const cityInput = document.getElementById('city-input');
+const currentLocationBtn = document.getElementById('current-location-btn');
 const refreshBtn = document.getElementById('refresh-btn');
 const toggleForecastBtn = document.getElementById('toggle-forecast-btn');
 const toggleForecastText = document.getElementById('toggle-forecast-text');
@@ -888,6 +889,130 @@ async function searchCity(cityName) {
 }
 
 /**
+ * Reverse geocode latitude and longitude to resolve locality/city and country names
+ * Uses client-side BigDataCloud reverse geocoding API with OpenStreetMap Nominatim fallback
+ */
+async function reverseGeocodeLocation(latitude, longitude) {
+    try {
+        const response = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+        );
+        if (response.ok) {
+            const data = await response.json();
+            const name = data.city || data.locality || data.principalSubdivision || 'Current Location';
+            const admin1 = data.principalSubdivision || '';
+            const country = data.countryName || '';
+            const countryCode = data.countryCode || '';
+            return {
+                name,
+                admin1,
+                country,
+                countryCode,
+                latitude,
+                longitude,
+                timezone: 'auto'
+            };
+        }
+    } catch (e) {
+        console.warn('BigDataCloud reverse geocoding failed, trying fallback:', e);
+    }
+
+    try {
+        const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+            { headers: { 'Accept-Language': 'en' } }
+        );
+        if (response.ok) {
+            const data = await response.json();
+            const addr = data.address || {};
+            const name = addr.city || addr.town || addr.village || addr.suburb || addr.municipality || addr.county || addr.state || 'Current Location';
+            const admin1 = addr.state || addr.county || '';
+            const country = addr.country || '';
+            const countryCode = (addr.country_code || '').toUpperCase();
+            return {
+                name,
+                admin1,
+                country,
+                countryCode,
+                latitude,
+                longitude,
+                timezone: 'auto'
+            };
+        }
+    } catch (e) {
+        console.warn('Nominatim reverse geocoding failed:', e);
+    }
+
+    return {
+        name: 'Current Location',
+        admin1: '',
+        country: '',
+        countryCode: '',
+        latitude,
+        longitude,
+        timezone: 'auto'
+    };
+}
+
+/**
+ * Handle "Use Current Location" button click
+ * 1. Request browser location permission
+ * 2. Get user's real current latitude and longitude
+ * 3. Reverse geocode location and fetch real weather data
+ * 4. Update the weather dashboard with all metrics and forecasts
+ */
+function handleCurrentLocation() {
+    if (!navigator.geolocation) {
+        setUIState('error', 'Unable to get your current location. Please try again.', 'Location Error', 'location_off');
+        return;
+    }
+
+    setUIState('loading');
+    if (cityInput) {
+        cityInput.value = '';
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            try {
+                const { latitude, longitude } = position.coords;
+                const locationData = await reverseGeocodeLocation(latitude, longitude);
+                currentLocation = locationData;
+                await fetchWeatherData(currentLocation, false);
+                // Reset auto-refresh timer to synchronize with the new location
+                startAutoRefresh();
+            } catch (error) {
+                console.error('Error fetching weather for current location:', error);
+                setUIState('error', 'Unable to get your current location. Please try again.', 'Location Error', 'location_off');
+            }
+        },
+        (error) => {
+            console.error('Geolocation error:', error);
+            if (error.code === error.PERMISSION_DENIED) {
+                setUIState(
+                    'error',
+                    'Location access was denied. Please allow permission or search for a city.',
+                    'Location Access Denied',
+                    'location_disabled'
+                );
+            } else {
+                setUIState(
+                    'error',
+                    'Unable to get your current location. Please try again.',
+                    'Location Error',
+                    'location_off'
+                );
+            }
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        }
+    );
+}
+
+/**
  * Start or restart the 60-second automatic refresh timer for the ACTIVE selected location
  */
 function startAutoRefresh() {
@@ -909,6 +1034,9 @@ function setupEventListeners() {
     searchBtn?.addEventListener('click', () => {
         searchCity(cityInput.value);
     });
+
+    // Use Current Location Button Click
+    currentLocationBtn?.addEventListener('click', handleCurrentLocation);
 
     // Enter Key in Search Input
     cityInput?.addEventListener('keydown', (e) => {
