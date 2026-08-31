@@ -368,8 +368,49 @@ body {
 }
 
 /* ==========================================================================
-   Main Weather Card
+   Inline Loading Banner (small, non-intrusive)
    ========================================================================== */
+.inline-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    border-radius: var(--radius-pill);
+    animation: fadeIn 0.3s ease forwards;
+    align-self: center;
+    width: fit-content;
+    margin: 0 auto;
+}
+
+.inline-loading.hidden {
+    display: none !important;
+}
+
+.inline-loading-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-blue);
+    animation: pulseDot 1.2s ease-in-out infinite;
+    flex-shrink: 0;
+}
+
+.inline-loading-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent-blue);
+    letter-spacing: 0.2px;
+}
+
+@keyframes pulseDot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.4; transform: scale(0.75); }
+}
+
+
 .weather-card {
     background: var(--card-bg);
     backdrop-filter: blur(28px);

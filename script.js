@@ -66,6 +66,7 @@ const toggleForecastText = document.getElementById('toggle-forecast-text');
 
 // DOM Elements - States & Containers
 const loadingState = document.getElementById('loading-state');
+const inlineLoading = document.getElementById('inline-loading');
 const errorState = document.getElementById('error-state');
 const errorTitle = document.getElementById('error-title');
 const errorIcon = document.getElementById('error-icon');
@@ -392,6 +393,11 @@ async function fetchWeatherData(location = currentLocation, isBackground = false
         refreshBtn.classList.add('spinning');
     }
 
+    // Show inline loading banner for all fetch cases
+    if (inlineLoading) {
+        inlineLoading.classList.remove('hidden');
+    }
+
     // Only switch to full-screen loading state if we have no prior data or during a new search
     if (!isBackground && !hasLoadedData) {
         setUIState('loading');
@@ -453,6 +459,10 @@ async function fetchWeatherData(location = currentLocation, isBackground = false
         }
     } finally {
         isFetching = false;
+        // Always hide the inline loading banner when fetch completes
+        if (inlineLoading) {
+            inlineLoading.classList.add('hidden');
+        }
         if (refreshBtn) {
             refreshBtn.classList.remove('spinning');
         }
@@ -852,6 +862,9 @@ async function searchCity(cityName) {
     if (!query) return;
 
     setUIState('loading');
+    if (inlineLoading) {
+        inlineLoading.classList.remove('hidden');
+    }
     if (refreshBtn) {
         refreshBtn.classList.add('spinning');
     }
@@ -882,11 +895,15 @@ async function searchCity(cityName) {
         console.error('Search error:', error);
         setUIState('error', 'Unable to fetch the latest weather data. Please try again.', 'Unable to Fetch Weather', 'cloud_off');
     } finally {
+        if (inlineLoading) {
+            inlineLoading.classList.add('hidden');
+        }
         if (refreshBtn) {
             refreshBtn.classList.remove('spinning');
         }
     }
 }
+
 
 /**
  * Reverse geocode latitude and longitude to resolve locality/city and country names
