@@ -889,6 +889,9 @@ async function searchCity(cityName) {
 
         currentLocation = newLocation;
         await fetchWeatherData(currentLocation, false);
+        weatherCard.classList.remove('weather-data-updated');
+        void weatherCard.offsetWidth;
+        weatherCard.classList.add('weather-data-updated');
         // Reset auto-refresh timer to synchronize with the new search
         startAutoRefresh();
     } catch (error) {

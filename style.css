@@ -430,6 +430,22 @@ body {
     display: none !important;
 }
 
+.weather-card.weather-data-updated {
+    animation: weatherDataChange 0.45s ease;
+}
+
+@keyframes weatherDataChange {
+    from {
+        opacity: 0.7;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Header: Location & Actions */
 .card-header {
     display: flex;
