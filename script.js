@@ -750,8 +750,8 @@ function renderForecast(daily, location) {
             <p class="forecast-condition" title="${conditionInfo.label}">${conditionInfo.label}</p>
 
             <div class="forecast-temps">
-                <span class="forecast-temp-max">${maxTemp}°</span>
-                <span class="forecast-temp-min">${minTemp}°</span>
+                <span class="forecast-temp-max">${maxTemp}°C</span>
+                <span class="forecast-temp-min">${minTemp}°C</span>
             </div>
 
             <div class="forecast-metrics">
